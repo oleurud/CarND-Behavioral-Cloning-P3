@@ -28,7 +28,12 @@ def get_data():
         with open(folder + 'driving_log.csv') as csvfile:
             reader = csv.reader(csvfile)
             for line in reader:
-                samples.append(line)
+                if(line[0] != None):
+                    samples.append([
+                        line[0], #center image
+                        line[3], #angle
+                        folder
+                    ])
 
     return train_test_split(samples, test_size=0.2)
 
@@ -44,9 +49,11 @@ def generator(samples, batch_size=32):
             angles = []
 
             for batch_sample in batch_samples:
-                name = './IMG/'+batch_sample[0].split('/')[-1]
-                center_image = cv2.imread(name)
-                center_angle = float(batch_sample[3])
+                imagePath = batch_sample[2] + 'IMG/' + batch_sample[0].split('/')[-1]
+                #print('imagePath', imagePath)
+                center_image = cv2.imread(imagePath)
+                #print('shape', center_image.shape)
+                center_angle = float(batch_sample[1])
                 images.append(center_image)
                 angles.append(center_angle)
 
@@ -56,7 +63,9 @@ def generator(samples, batch_size=32):
 
 
 def get_nvidia_model():
-
+    """
+    Based on http://images.nvidia.com/content/tegra/automotive/images/2016/solutions/pdf/end-to-end-dl-using-px.pdf
+    """
     model = Sequential()
     
     row, col, ch = 160, 320, 3
@@ -88,11 +97,12 @@ def get_nvidia_model():
 
 def training():
     train_samples, validation_samples = get_data()
-    # compile and train the model using the generator function
     train_generator = generator(train_samples)
     validation_generator = generator(validation_samples)
 
     model = get_nvidia_model()
+
+    print("training...")
     model.fit_generator(
         train_generator, 
         samples_per_epoch=len(train_samples), 
@@ -100,8 +110,10 @@ def training():
         nb_val_samples=len(validation_samples), 
         nb_epoch=3
     )
-    
+
+    print("saving...")
     model.save('model.h5')
+    print("done")
 
 
 training()
