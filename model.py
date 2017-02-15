@@ -118,7 +118,7 @@ def training():
     )
 
     print("getting stats...")
-    getStats(history)
+    #getStats(history)
 
     print("saving...")
     model.save('model.h5')
