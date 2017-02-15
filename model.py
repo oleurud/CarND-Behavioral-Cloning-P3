@@ -3,11 +3,12 @@ import cv2
 import numpy as np
 import sklearn
 from sklearn.model_selection import train_test_split
+import matplotlib.pyplot as plt
+from PIL import Image
 
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Flatten, Lambda, Cropping2D
 from keras.layers.convolutional import Convolution2D
-
 
 def get_data():
     """
@@ -49,10 +50,8 @@ def generator(samples, batch_size=32):
             angles = []
 
             for batch_sample in batch_samples:
-                imagePath = batch_sample[2] + 'IMG/' + batch_sample[0].split('/')[-1]
-                #print('imagePath', imagePath)
-                center_image = cv2.imread(imagePath)
-                #print('shape', center_image.shape)
+                image_path = batch_sample[2] + 'IMG/' + batch_sample[0].split('/')[-1]
+                center_image = np.asarray(Image.open(image_path))
                 center_angle = float(batch_sample[1])
                 images.append(center_image)
                 angles.append(center_angle)
@@ -70,10 +69,8 @@ def get_nvidia_model():
     
     row, col, ch = 160, 320, 3
     model.add(Cropping2D(cropping=((50, 30), (0, 0)), input_shape=(row, col, ch)))
-
     row, col, ch = 80, 320, 3
     model.add(Lambda(lambda x: x/127.5 - 1., input_shape=(row, col, ch), output_shape=(row, col, ch)))
-
     model.add(Convolution2D(24, 5, 5, border_mode='valid', activation='relu', subsample=(2,2)))
     model.add(Dropout(0.5))
     model.add(Convolution2D(36, 5, 5, border_mode='valid', activation='relu', subsample=(2,2)))
@@ -95,6 +92,15 @@ def get_nvidia_model():
 
     return model
 
+def getStats(history):
+    fig = plt.figure()
+    plt.plot(history.history['loss'], figure = fig)
+    plt.plot(history.history['val_loss'], figure = fig)
+    plt.ylabel('loss')
+    plt.xlabel('epoch')
+    plt.legend(['training', 'testing'])
+    fig.savefig('stats.png', dpi=100)
+
 def training():
     train_samples, validation_samples = get_data()
     train_generator = generator(train_samples)
@@ -103,7 +109,7 @@ def training():
     model = get_nvidia_model()
 
     print("training...")
-    model.fit_generator(
+    history = model.fit_generator(
         train_generator, 
         samples_per_epoch=len(train_samples), 
         validation_data=validation_generator,
@@ -111,8 +117,12 @@ def training():
         nb_epoch=3
     )
 
+    print("getting stats...")
+    getStats(history)
+
     print("saving...")
     model.save('model.h5')
+
     print("done")
 
 
