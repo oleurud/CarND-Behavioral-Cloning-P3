@@ -29,6 +29,7 @@ def get_data():
         with open(folder + 'driving_log.csv') as csvfile:
             reader = csv.reader(csvfile)
             for line in reader:
+                line[3] = line[3].strip()
                 if(line[0] != None and line[3] != '0'):
                     samples.append([
                         line[0], #center image
@@ -61,9 +62,9 @@ def generator(samples, batch_size=128):
                 images.append(center_image)
                 angles.append(center_angle)
 
-                #flip
+                #flip center
                 center_image_flip = np.fliplr(center_image)
-                center_angle_flip = -batch_sample[3]
+                center_angle_flip = -center_angle
                 images.append(center_image_flip)
                 angles.append(center_angle_flip)
 
@@ -74,6 +75,12 @@ def generator(samples, batch_size=128):
                 images.append(left_image)
                 angles.append(left_angle)
 
+                #flip left
+                left_image_flip = np.fliplr(left_image)
+                left_angle_flip = -left_angle
+                images.append(left_image_flip)
+                angles.append(left_angle_flip)
+
                 #right
                 image_path = batch_sample[4] + 'IMG/' + batch_sample[2].split('/')[-1]
                 right_image = np.asarray(Image.open(image_path))
@@ -81,10 +88,17 @@ def generator(samples, batch_size=128):
                 images.append(right_image)
                 angles.append(right_angle)
 
+                #flip right
+                right_image_flip = np.fliplr(right_image)
+                right_angle_flip = -right_angle
+                images.append(right_image_flip)
+                angles.append(right_angle_flip)
+
 
             X_train = np.array(images)
             y_train = np.array(angles)
-            yield X_train, y_train
+
+            yield sklearn.utils.shuffle(X_train, y_train)
 
 
 def get_nvidia_model():
@@ -132,16 +146,15 @@ def training():
 
     model = get_nvidia_model()
 
-    print("training...")
     history = model.fit_generator(
         generator(train_samples), 
-        samples_per_epoch=len(train_samples) * 4, 
+        samples_per_epoch=len(train_samples) * 6, 
         validation_data=generator(validation_samples),
-        nb_val_samples=len(validation_samples) * 4, 
+        nb_val_samples=len(validation_samples) * 6, 
         nb_epoch=10
     )
 
-    print("getting stats...")
+    #print("getting stats...")
     #getStats(history)
 
     print("saving...")
