@@ -29,17 +29,21 @@ def get_data():
         with open(folder + 'driving_log.csv') as csvfile:
             reader = csv.reader(csvfile)
             for line in reader:
-                if(line[0] != None):
+                if(line[0] != None and line[3] != '0'):
                     samples.append([
                         line[0], #center image
-                        line[3], #angle
+                        line[1], #left image
+                        line[2], #right image
+                        float(line[3]), #angle
                         folder
                     ])
 
     return train_test_split(samples, test_size=0.2)
 
 
-def generator(samples, batch_size=32):
+def generator(samples, batch_size=128):
+    side_images_correction = 0.2
+
     num_samples = len(samples)
     while True: # Loop forever so the generator never terminates
         samples = sklearn.utils.shuffle(samples)
@@ -50,11 +54,33 @@ def generator(samples, batch_size=32):
             angles = []
 
             for batch_sample in batch_samples:
-                image_path = batch_sample[2] + 'IMG/' + batch_sample[0].split('/')[-1]
+                #center
+                image_path = batch_sample[4] + 'IMG/' + batch_sample[0].split('/')[-1]
                 center_image = np.asarray(Image.open(image_path))
-                center_angle = float(batch_sample[1])
+                center_angle = batch_sample[3]
                 images.append(center_image)
                 angles.append(center_angle)
+
+                #flip
+                center_image_flip = np.fliplr(center_image)
+                center_angle_flip = -batch_sample[3]
+                images.append(center_image_flip)
+                angles.append(center_angle_flip)
+
+                #left
+                image_path = batch_sample[4] + 'IMG/' + batch_sample[1].split('/')[-1]
+                left_image = np.asarray(Image.open(image_path))
+                left_angle = batch_sample[3] + side_images_correction
+                images.append(left_image)
+                angles.append(left_angle)
+
+                #right
+                image_path = batch_sample[4] + 'IMG/' + batch_sample[2].split('/')[-1]
+                right_image = np.asarray(Image.open(image_path))
+                right_angle = batch_sample[3] - side_images_correction
+                images.append(right_image)
+                angles.append(right_angle)
+
 
             X_train = np.array(images)
             y_train = np.array(angles)
@@ -66,7 +92,7 @@ def get_nvidia_model():
     Based on http://images.nvidia.com/content/tegra/automotive/images/2016/solutions/pdf/end-to-end-dl-using-px.pdf
     """
     model = Sequential()
-    
+
     row, col, ch = 160, 320, 3
     model.add(Cropping2D(cropping=((50, 30), (0, 0)), input_shape=(row, col, ch)))
     row, col, ch = 80, 320, 3
@@ -94,8 +120,8 @@ def get_nvidia_model():
 
 def getStats(history):
     fig = plt.figure()
-    plt.plot(history.history['loss'], figure = fig)
-    plt.plot(history.history['val_loss'], figure = fig)
+    plt.plot(history.history['loss'], figure=fig)
+    plt.plot(history.history['val_loss'], figure=fig)
     plt.ylabel('loss')
     plt.xlabel('epoch')
     plt.legend(['training', 'testing'])
@@ -103,18 +129,16 @@ def getStats(history):
 
 def training():
     train_samples, validation_samples = get_data()
-    train_generator = generator(train_samples)
-    validation_generator = generator(validation_samples)
 
     model = get_nvidia_model()
 
     print("training...")
     history = model.fit_generator(
-        train_generator, 
-        samples_per_epoch=len(train_samples), 
-        validation_data=validation_generator,
-        nb_val_samples=len(validation_samples), 
-        nb_epoch=3
+        generator(train_samples), 
+        samples_per_epoch=len(train_samples) * 4, 
+        validation_data=generator(validation_samples),
+        nb_val_samples=len(validation_samples) * 4, 
+        nb_epoch=10
     )
 
     print("getting stats...")
