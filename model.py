@@ -155,7 +155,7 @@ def training():
         samples_per_epoch=len(train_samples) * 3, 
         validation_data=generator(validation_samples),
         nb_val_samples=len(validation_samples) * 3, 
-        nb_epoch=10
+        nb_epoch=5
     )
 
     #print("getting stats...")
