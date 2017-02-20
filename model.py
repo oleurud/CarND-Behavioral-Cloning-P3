@@ -152,9 +152,9 @@ def training():
 
     history = model.fit_generator(
         generator(train_samples), 
-        samples_per_epoch=len(train_samples) * 6, 
+        samples_per_epoch=len(train_samples) * 3, 
         validation_data=generator(validation_samples),
-        nb_val_samples=len(validation_samples) * 6, 
+        nb_val_samples=len(validation_samples) * 3, 
         nb_epoch=10
     )
 
