@@ -16,10 +16,10 @@ def get_data():
     """
 
     folders = [
-        './myData/center/',
-        './myData/clockwise/',
-        './myData/recovery/',
-        './myData/track2/',
+        #'./myData/center/',
+        #'./myData/clockwise/',
+        #'./myData/recovery/',
+        #'./myData/track2/',
         './data/data/'
     ]
 
@@ -30,7 +30,7 @@ def get_data():
             reader = csv.reader(csvfile)
             for line in reader:
                 line[3] = line[3].strip()
-                if(line[0] != None and line[3] != '0'):
+                if(line[0] != None):
                     samples.append([
                         line[0], #center image
                         line[1], #left image
@@ -43,7 +43,7 @@ def get_data():
 
 
 def generator(samples, batch_size=128):
-    side_images_correction = 0.2
+    side_images_correction = 0.05
 
     num_samples = len(samples)
     while True: # Loop forever so the generator never terminates
@@ -63,10 +63,12 @@ def generator(samples, batch_size=128):
                 angles.append(center_angle)
 
                 #flip center
+                """
                 center_image_flip = np.fliplr(center_image)
                 center_angle_flip = -center_angle
                 images.append(center_image_flip)
                 angles.append(center_angle_flip)
+                """
 
                 #left
                 image_path = batch_sample[4] + 'IMG/' + batch_sample[1].split('/')[-1]
@@ -76,11 +78,12 @@ def generator(samples, batch_size=128):
                 angles.append(left_angle)
 
                 #flip left
+                """
                 left_image_flip = np.fliplr(left_image)
                 left_angle_flip = -left_angle
                 images.append(left_image_flip)
                 angles.append(left_angle_flip)
-
+                """
                 #right
                 image_path = batch_sample[4] + 'IMG/' + batch_sample[2].split('/')[-1]
                 right_image = np.asarray(Image.open(image_path))
@@ -89,11 +92,12 @@ def generator(samples, batch_size=128):
                 angles.append(right_angle)
 
                 #flip right
+                """
                 right_image_flip = np.fliplr(right_image)
                 right_angle_flip = -right_angle
                 images.append(right_image_flip)
                 angles.append(right_angle_flip)
-
+                """
 
             X_train = np.array(images)
             y_train = np.array(angles)
@@ -112,15 +116,15 @@ def get_nvidia_model():
     row, col, ch = 80, 320, 3
     model.add(Lambda(lambda x: x/127.5 - 1., input_shape=(row, col, ch), output_shape=(row, col, ch)))
     model.add(Convolution2D(24, 5, 5, border_mode='valid', activation='relu', subsample=(2,2)))
-    model.add(Dropout(0.5))
+    #model.add(Dropout(0.5))
     model.add(Convolution2D(36, 5, 5, border_mode='valid', activation='relu', subsample=(2,2)))
-    model.add(Dropout(0.5))
+    #model.add(Dropout(0.5))
     model.add(Convolution2D(48, 5, 5, border_mode='valid', activation='relu', subsample=(2,2)))
-    model.add(Dropout(0.5))
+    #model.add(Dropout(0.5))
     model.add(Convolution2D(64, 3, 3, border_mode='valid', activation='relu', subsample=(1,1)))
-    model.add(Dropout(0.5))
+    #model.add(Dropout(0.5))
     model.add(Convolution2D(64, 3, 3, border_mode='valid', activation='relu', subsample=(1,1)))
-    model.add(Dropout(0.5))
+    #model.add(Dropout(0.5))
     model.add(Flatten())
     model.add(Dense(1164, activation="relu"))
     model.add(Dense(100, activation="relu"))
