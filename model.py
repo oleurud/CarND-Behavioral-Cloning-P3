@@ -13,13 +13,19 @@ from keras.layers.convolutional import Convolution2D
 def get_data():
     """
     Read all the training data and returns train_samples and validation_samples
+    The data is readed from 5 folders:
+    - data: udacity data
+    - center: the images of 2 laps on the track
+    - clockwise: the images of 1 lap clockwise on the trach
+    - recovery: some images recovering the car
+    - track2: some images of the track 2
     """
 
     folders = [
-        #'./myData/center/',
-        #'./myData/clockwise/',
-        #'./myData/recovery/',
-        #'./myData/track2/',
+        './myData/center/',
+        './myData/clockwise/',
+        './myData/recovery/',
+        './myData/track2/',
         './data/data/'
     ]
 
@@ -42,7 +48,12 @@ def get_data():
     return train_test_split(samples, test_size=0.2)
 
 
-def generator(samples, batch_size=128):
+def generator(samples, batch_size=64):
+    """
+    Returns a batch of training data
+    Returns the center, right and left images, and increase the data flipping all these images
+    """
+
     side_images_correction = 0.05
 
     num_samples = len(samples)
@@ -63,12 +74,10 @@ def generator(samples, batch_size=128):
                 angles.append(center_angle)
 
                 #flip center
-                """
                 center_image_flip = np.fliplr(center_image)
                 center_angle_flip = -center_angle
                 images.append(center_image_flip)
                 angles.append(center_angle_flip)
-                """
 
                 #left
                 image_path = batch_sample[4] + 'IMG/' + batch_sample[1].split('/')[-1]
@@ -78,12 +87,11 @@ def generator(samples, batch_size=128):
                 angles.append(left_angle)
 
                 #flip left
-                """
                 left_image_flip = np.fliplr(left_image)
                 left_angle_flip = -left_angle
                 images.append(left_image_flip)
                 angles.append(left_angle_flip)
-                """
+
                 #right
                 image_path = batch_sample[4] + 'IMG/' + batch_sample[2].split('/')[-1]
                 right_image = np.asarray(Image.open(image_path))
@@ -92,13 +100,11 @@ def generator(samples, batch_size=128):
                 angles.append(right_angle)
 
                 #flip right
-                """
                 right_image_flip = np.fliplr(right_image)
                 right_angle_flip = -right_angle
                 images.append(right_image_flip)
                 angles.append(right_angle_flip)
-                """
-
+                
             X_train = np.array(images)
             y_train = np.array(angles)
 
@@ -107,7 +113,8 @@ def generator(samples, batch_size=128):
 
 def get_nvidia_model():
     """
-    Based on http://images.nvidia.com/content/tegra/automotive/images/2016/solutions/pdf/end-to-end-dl-using-px.pdf
+    Returns the Keras model 
+    The model is based 100% on http://images.nvidia.com/content/tegra/automotive/images/2016/solutions/pdf/end-to-end-dl-using-px.pdf
     """
     model = Sequential()
 
@@ -146,6 +153,11 @@ def getStats(history):
     fig.savefig('stats.png', dpi=100)
 
 def training():
+    """
+    Trains the model with the data readed in get_data and generator methods
+    Validate the model
+    Save the model trainned in model.h5 file
+    """
     train_samples, validation_samples = get_data()
 
     model = get_nvidia_model()
